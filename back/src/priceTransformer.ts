@@ -6,7 +6,5 @@ export class PriceTransformer  {
     return data;
   }
 
-  from(data: string): number {
-    return parseFloat(data);
-  }
+
 }
