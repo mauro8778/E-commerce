@@ -1,0 +1,35 @@
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { UploadApiResponse, v2 } from "cloudinary";
+import ToStream = require ('buffer-to-stream');
+import { error } from "console";
+
+@Injectable()
+
+export class FileupdateRepository{
+    async uploadImage(
+        file: Express.Multer.File
+    ):Promise<UploadApiResponse>{
+
+        return new Promise((resolve,reject)=>{
+            
+            const upload=v2.uploader.upload_stream(
+                
+            
+            {
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key:process.env.CLOUDINARY_API_KEY,
+            api_secret:process.env.CLOUDINARY_API_SECRET,
+            resourse_type:'auto',
+            },
+            (error,result)=>{
+                if(!file){
+                    reject(new NotFoundException('no se encontro el archivo'));
+                }else{
+                    resolve(result);
+                }
+            }
+        );
+            ToStream(file.buffer).pipe(upload);
+        })
+    }
+}

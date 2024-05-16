@@ -1,0 +1,34 @@
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Observable } from 'rxjs';
+import { Role } from '../Users/user.enum';
+
+@Injectable()
+export class ValidationGuardsGuard implements CanActivate {
+  constructor(private readonly jwtservice: JwtService){}
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+     throw new UnauthorizedException('se necesita token')
+    }
+    try {
+      const secret=process.env.JWT_SECRET;
+      const payload=this.jwtservice.verify(token,{secret});
+      
+      payload.exp= new Date(payload.exp * 1000 );
+
+      payload.role = payload.isAdmin ? [Role.admin] : [Role.user];
+
+
+      request.user=payload;
+      return true;
+    } catch (error) {
+      throw new UnauthorizedException('token invalido')
+      
+    }
+  }
+}
