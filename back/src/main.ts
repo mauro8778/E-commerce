@@ -3,7 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-import hpp from 'hpp';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const hpp = require('hpp');
 import { startOrderWorker } from './queues/order.queue';
 
 async function bootstrap() {
