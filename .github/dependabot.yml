@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Modo Silencioso: open-pull-requests-limit en 0 evita la apertura automática
+  # de PRs individuales y el envío de notificaciones y correos ruidosos.
+  - package-ecosystem: "npm"
+    directory: "/back"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0

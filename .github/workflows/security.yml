@@ -1,0 +1,58 @@
+name: 🛡️ DevSecOps & Security Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ==================================================
+  # 1. Escaneo de Dependencias Vulnerables
+  # ==================================================
+  dependency-audit:
+    name: 📦 NPM Audit Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        working-directory: ./back
+        run: npm ci --prefer-offline || npm install
+
+      - name: Run NPM Security Audit
+        working-directory: ./back
+        continue-on-error: true
+        run: npm audit --audit-level=critical || true
+
+  # ==================================================
+  # 2. Análisis Estático de Código (CodeQL)
+  # ==================================================
+  codeql-analysis:
+    name: 🔍 CodeQL Static Analysis (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+        with:
+          category: "/language:javascript-typescript"

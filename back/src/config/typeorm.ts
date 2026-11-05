@@ -2,7 +2,10 @@ import {config as dotenvConfig} from 'dotenv';
 import{registerAs} from '@nestjs/config';
 import { DataSource,DataSourceOptions }from 'typeorm';
 
-dotenvConfig({ path: 'development.env' });
+import { existsSync } from 'fs';
+
+const envPath = existsSync('.env') ? '.env' : existsSync('development.env') ? 'development.env' : undefined;
+dotenvConfig(envPath ? { path: envPath } : undefined);
 
 const config ={
 
@@ -16,7 +19,7 @@ const config ={
     entities: ['dist/**/*.entity{.ts,.js}'],
     autoLoadEntities: true,
     logging: true,
-    synchronize: false,
+    synchronize: process.env.NODE_ENV !== 'production',
     dropSchema: false,
     migrations: ['dist/migrations/*{.ts,.js}'],
 }

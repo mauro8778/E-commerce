@@ -17,41 +17,52 @@ import { UserEntity } from './Users/user.entity';
 import { FileuUploadModule } from './fileupload/file-upload.module';
 import typeormConfig from './config/typeorm';
 import { JwtModule } from '@nestjs/jwt';
+import { AiModule } from './ai/ai.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeormConfig]
+      load: [typeormConfig],
     }),
     TypeOrmModule.forFeature([ProductEntity, CategoryEntity, OrderDetailsEntity, OrderEntity, UserEntity]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configServices: ConfigService) =>
-        configServices.get('typeorm'),
-
+      useFactory: (configServices: ConfigService) => configServices.get('typeorm'),
     }),
+    // Rate Limiting Distribuido (Protección anti-DDoS / fuerza bruta)
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 120, // 120 peticiones por minuto por IP
+      },
+    ]),
     CategoryModule,
     usersModule,
     productModule,
     authModule,
     OrderModule,
     FileuUploadModule,
+    AiModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET,
+      secret: process.env.JWT_SECRET || 'dev_secret_jwt_key_2026',
       signOptions: { expiresIn: '1h' },
-    })
+    }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
-
   configure(consumer: MiddlewareConsumer) {
-
-
     consumer.apply(loginGlobal).forRoutes('');
   }
-
 }
-

@@ -1,0 +1,83 @@
+services:
+  # ==========================================
+  # 🐘 Base de Datos Relacional PostgreSQL 16
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: ecommerce_db
+    ports:
+      - "${HOST_DB_PORT:-5437}:5432"
+    volumes:
+      - ecommerce_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+
+  # ==========================================
+  # ⚡ Redis 7 (Caché de Catálogo y Colas BullMQ)
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - ecommerce_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ecommerce-network
+
+  # ==========================================
+  # 🚀 API NestJS (E-Commerce Core & AI Engine)
+  # ==========================================
+  api:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: ecommerce-api
+    restart: always
+    ports:
+      - "${HOST_PORT:-3006}:3006"
+    environment:
+      PORT: 3006
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgrespassword
+      DB_NAME: ecommerce_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ecommerce_production_jwt_secret_high_entropy_2026
+      JWT_EXPIRES_IN: 1h
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  ecommerce_pgdata:
+  ecommerce_redisdata:
